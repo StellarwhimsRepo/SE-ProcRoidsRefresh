@@ -127,12 +127,12 @@ function saveIt {
 #Load files...
 Write-Output "Loading Map XML from $saveLocation... Please hold"
 $mapXML = $null #Ditch previous map 
-if ([xml]$mapXML = Get-Content $saveLocation\SANDBOX_0_0_0_.sbs) {
+if ([xml]$mapXML = Get-Content $saveLocation\SANDBOX_0_0_0_.sbs -Encoding UTF8) {
     $mapNS = New-Object System.Xml.XmlNamespaceManager($mapXML.NameTable)
     $mapNS.AddNamespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
     Write-Output "Map loaded! Loading Config XML from $saveLocation... Please hold"
     $configXML = $null #Ditch previous config 
-    if ([xml]$configXML = Get-Content $saveLocation\Sandbox.sbc) {
+    if ([xml]$configXML = Get-Content $saveLocation\Sandbox.sbc -Encoding UTF8) {
         $confNS = New-Object System.Xml.XmlNamespaceManager($configXML.NameTable)
         $confNS.AddNamespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
         Write-Output "Config loaded! Ready to work`n"
