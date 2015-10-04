@@ -33,6 +33,15 @@ Param(
 
 function quit! {EXIT}
 
+function saveIt {
+    $saveFile = "$saveLocation\SANDBOX_0_0_0_.sbs"
+    $mapXML.Save($saveFile)
+    Write-Host -ForegroundColor Green "SAVED!!"
+
+  Write-Host -ForegroundColor DarkYellow ""
+  Write-Host -ForegroundColor DarkYellow "For a command list use - 'listcommands'"
+}
+
 function listcommands {
     write-output "
     
@@ -98,10 +107,12 @@ if ($totalSize -gt $filesize){
             if ($($response.count) -eq 0) {
                 Write-Output "Nothing found near $($roid.StorageName)"
                 $removeRoid = "$saveLocation\$($roid.StorageName).vx2"
+                $removeRoidOld = "$saveLocation\$($roid.StorageName).vox"
                 #$originalRoid = "$origLocation\$($roid.StorageName).vx2"
                 
                     Write-Output "Refreshing Roid $($roid.StorageName)"
                     Remove-Item $removeRoid -Force
+                    Remove-Item $removeRoidOld -Force -ea SilentlyContinue
                     $roid.ParentNode.RemoveChild($roid)
                 
             } else {
@@ -111,18 +122,12 @@ if ($totalSize -gt $filesize){
     } else {
         Write-Output "No Distance passed to refreshRoids command"
     }
+  saveIt
   Write-Host -ForegroundColor DarkYellow ""
   Write-Host -ForegroundColor DarkYellow "For a command list use - 'listcommands'"
 }
 }
-function saveIt {
-    $saveFile = "$saveLocation\SANDBOX_0_0_0_.sbs"
-    $mapXML.Save($saveFile)
-    Write-Host -ForegroundColor Green "SAVED!!"
 
-  Write-Host -ForegroundColor DarkYellow ""
-  Write-Host -ForegroundColor DarkYellow "For a command list use - 'listcommands'"
-}
 
 #Load files...
 Write-Output "Loading Map XML from $saveLocation... Please hold"
