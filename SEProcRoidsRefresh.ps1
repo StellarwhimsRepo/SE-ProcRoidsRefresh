@@ -104,7 +104,7 @@ if ($totalSize -gt $filesize){
         $roids = $mapXML.SelectNodes("//SectorObjects/MyObjectBuilder_EntityBase[(@xsi:type='MyObjectBuilder_VoxelMap')]" ,$mapNS)
         foreach ($roid in $roids) {
             $response = findThingsNear $roid.PositionAndOrientation.Position.x $roid.PositionAndOrientation.Position.y $roid.PositionAndOrientation.Position.z $args[0]
-            if ($($response.count) -eq 0) {
+            if ($($response.count) -eq 0 -or $response.count -eq $null) {
                 Write-Output "Nothing found near $($roid.StorageName)"
                 $removeRoid = "$saveLocation\$($roid.StorageName).vx2"
                 $removeRoidOld = "$saveLocation\$($roid.StorageName).vox"
