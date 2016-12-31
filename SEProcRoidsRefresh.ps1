@@ -28,14 +28,17 @@
 
 Param(
     # I've changed how this works. Now you just need to point it to your entire save folder. It is assumed that all your .vx2, .sbc and .sbs files are in here
-    [string]$saveLocation = "your save path here"
+    [string]$saveLocation = "your save path here",
+    $regex = "([^_]+$)"
 )
 
 function quit! {EXIT}
 
 function saveIt {
     $saveFile = "$saveLocation\SANDBOX_0_0_0_.sbs"
+    $smallFile = "$saveLocation\Sandbox.sbc"
     $mapXML.Save($saveFile)
+    $configXML.Save($smallFile)
     Write-Host -ForegroundColor Green "SAVED!!"
 
   Write-Host -ForegroundColor DarkYellow ""
@@ -62,23 +65,23 @@ function listcommands {
 
 
 function findThingsNear {
-    $x = $args[0]; $y = $args[1]; $z = $args[2]; $dist = $args[3] #Set and Clear Variables
+    [decimal]$x = $args[0]; [decimal]$y = $args[1]; [decimal]$z = $args[2]; [decimal]$dist = $args[3] #Set and Clear Variables
     $desc = $args[1] ; $onOff = $args[0]  #Set and Clear Variables
     if ($x -eq $null) {
-        Write-Output "No X passed to findThingsNear command.."
+        Write-Output "No X passed to findThingsNear command.." | Out-Null
     } elseif ($y -eq $null) {
-        Write-Output "No Y passed to findThingsNear command.."
+        Write-Output "No Y passed to findThingsNear command.." | Out-Null
     } elseif ($z -eq $null) {
-        Write-Output "No Z passed to findThingsNear command.."
+        Write-Output "No Z passed to findThingsNear command.." | Out-Null
     } elseif ($dist -eq $null) {
-        Write-Output "No distance passed to findThingsNear command.."
+        Write-Output "No distance passed to findThingsNear command.." | Out-Null
     } else {
         $cubeGrids = $mapXML.SelectNodes("//SectorObjects/MyObjectBuilder_EntityBase[(@xsi:type='MyObjectBuilder_CubeGrid')]" ,$mapNS)
         foreach ($cubeGrid in $cubeGrids) {
             #Just for readability sake, not really nessessary...
-            [int]$checkX = $cubeGrid.PositionAndOrientation.Position.x; $xLo = ($x - $dist); $xHi = ($dist + $x)
-            [int]$checkY = $cubeGrid.PositionAndOrientation.Position.y; $yLo = ($y - $dist); $yHi = ($dist + $y)
-            [int]$checkZ = $cubeGrid.PositionAndOrientation.Position.z; $zLo = ($z - $dist); $zHi = ($dist + $z)
+            [decimal]$checkX = $cubeGrid.PositionAndOrientation.Position.x; [decimal]$xLo = ($x - $dist); [decimal]$xHi = ($dist + $x)
+            [decimal]$checkY = $cubeGrid.PositionAndOrientation.Position.y; [decimal]$yLo = ($y - $dist); [decimal]$yHi = ($dist + $y)
+            [decimal]$checkZ = $cubeGrid.PositionAndOrientation.Position.z; [decimal]$zLo = ($z - $dist); [decimal]$zHi = ($dist + $z)
             if ($checkX -gt $xLo -and $checkX -lt $xHi) {
                 # X coord in range
                 if ($checkY -gt $yLo -and $checkY -lt $yHi) {
@@ -87,8 +90,11 @@ function findThingsNear {
                         #Z coord in range - we have a winner!
                         $cubeGrid
                     }
+                    #else{$null}
                 }
+                #else{$null}
             }
+            #else{$null}
         }
     }
   Write-Host -ForegroundColor DarkYellow ""
@@ -103,8 +109,14 @@ if ($totalSize -gt $filesize){
     if ($dist -gt 0) {
         $roids = $mapXML.SelectNodes("//SectorObjects/MyObjectBuilder_EntityBase[(@xsi:type='MyObjectBuilder_VoxelMap')]" ,$mapNS)
         foreach ($roid in $roids) {
-            $response = findThingsNear $roid.PositionAndOrientation.Position.x $roid.PositionAndOrientation.Position.y $roid.PositionAndOrientation.Position.z $args[0]
-            if ($($response.count) -eq 0 -or $response.count -eq $null) {
+        #IF($roid.StorageName -eq 'Asteroid_*'){
+            $response = $null
+            $response = @(findThingsNear $roid.PositionAndOrientation.Position.x $roid.PositionAndOrientation.Position.y $roid.PositionAndOrientation.Position.z $args[0])
+            ForEach($found in $response){
+            $found.DisplayName
+            }
+            [decimal]$response.count
+            if ($response.count -eq 0 <#-or $response.count -eq $null#>) {
                 Write-Output "Nothing found near $($roid.StorageName)"
                 $removeRoid = "$saveLocation\$($roid.StorageName).vx2"
                 $removeRoidOld = "$saveLocation\$($roid.StorageName).vox"
@@ -118,9 +130,56 @@ if ($totalSize -gt $filesize){
             } else {
                 Write-Output "Blocking structures found, skipped $($roid.StorageName)"
             }
+        #}
         }
+    #check session components for seed parameterdata. cleans up previously left over data as well.
+    $count = 0
+
+    $asteroidseedparms = $configXML.SelectNodes("//SessionComponents/MyObjectBuilder_SessionComponent[(@xsi:type='MyObjectBuilder_WorldGenerator')]/ExistingObjectsSeeds/MyObjectSeedParams/Seed" , $confNS)
+    $existingroids = $mapXML.SelectNodes("//SectorObjects/MyObjectBuilder_EntityBase[(@xsi:type='MyObjectBuilder_VoxelMap')]/StorageName" , $mapNS) 
+    
+    $groups = $asteroidseedparms | Group-Object InnerText #| ForEach-Object{$_.Group[0]}
+        #purge duplicate seeds
+        ForEach($dupegroup in $groups){
+                        $next = 0
+                        $next = ($dupegroup.group.count) - 1
+                ForEach($dupenode in $dupegroup.Group){
+                    If($dupegroup.group.count -gt 1){
+                        If($next -ne 0){
+                        $dupenode.ParentNode.ParentNode.RemoveChild($dupenode.ParentNode)
+                        $next --
+                        #$dupenode.ParentNode.ParentNode
+                        }
+                }
+            }
+        }
+    $asteroidseedparms = $configXML.SelectNodes("//SessionComponents/MyObjectBuilder_SessionComponent[(@xsi:type='MyObjectBuilder_WorldGenerator')]/ExistingObjectsSeeds/MyObjectSeedParams/Seed" , $confNS)
+
+    ForEach($parm in $asteroidseedparms){
+
+        $preserve = 0
+        ForEach($roid in $existingroids){
+            $extract = $null
+            $extract = $roid.InnerText
+            $extract = [regex]::match($extract,$regex)
+            If($parm.InnerText -eq $extract){
+                Write-Host -ForegroundColor Green " roid parms preserved "
+                #sleep -Seconds 5
+                $preserve = 1
+                $count ++
+            }
+        }
+        If($preserve -eq 0){
+            Write-Host -ForegroundColor Yellow " removed old roid parm "
+            #Write-Host -ForegroundColor Green " roid parms preserved "
+            $parm.ParentNode.ParentNode.RemoveChild($parm.ParentNode)
+        }
+        
+
+    }
+
     } else {
-        Write-Output "No Distance passed to refreshRoids command"
+        Write-Output "No Distance passed to proceduralrefreshroids command"
     }
   saveIt
   Write-Host -ForegroundColor DarkYellow ""
